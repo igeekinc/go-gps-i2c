@@ -4,31 +4,15 @@ import (
 	"fmt"
 	gps2 "github.com/igeekinc/go-gps-i2c/pkg/gps"
 	"log"
-	"periph.io/x/conn/v3/i2c/i2creg"
 	"periph.io/x/conn/v3/pin"
 	"periph.io/x/conn/v3/pin/pinreg"
-	"periph.io/x/host/v3"
 )
 
 func main() {
-	if _, err := host.Init(); err != nil {
-		log.Fatal(err)
-	}
-
-	bus, err := i2creg.Open("1")
-
+	gps, err := gps2.NewSerialGPSReader("/dev/ttyACM0", 9600, 8, 1)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer bus.Close()
-
-	log.Println("Opened I2C bus")
-
-	gps, err := gps2.NewI2CGPS(bus, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Reading from I2CGPS")
 	for {
 		gga, err := gps.NextFix()
 		if err != nil {

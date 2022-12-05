@@ -1,54 +1,42 @@
 package gps
 
 import (
-	"periph.io/x/conn/v3"
-	"periph.io/x/conn/v3/i2c"
-	"time"
+	"github.com/adrianmo/go-nmea"
+	"github.com/pkg/errors"
+	"log"
 )
 
-const DefaultAddr = 0x10
-
-type Opts struct {
+type GPSReader interface {
+	Readline() (string, error)
 }
 
-type GPS struct {
-	Conn     conn.Conn
-	lastByte byte
+type GPSCore struct {
+	reader GPSReader
 }
 
-// NewGPS opens a handle to an i2c .
-func NewGPS(bus i2c.BusCloser, opts *Opts) (*GPS, error) {
-	device := &GPS{
-		Conn: &i2c.Dev{Bus: bus, Addr: uint16(DefaultAddr)},
-	}
-	return device, nil
-}
-
-func (g *GPS) sendCMD(cmd string) error {
-	return g.Conn.Tx([]byte(cmd), nil)
-}
-
-func (g *GPS) Readline() (string, error) {
-	retStr := ""
-	byteBuf := make([]byte, 1)
-	keepReading := true
-	for keepReading {
-		err := g.Conn.Tx(nil, byteBuf)
+func (g *GPSCore) NextSentence() (nmea.Sentence, error) {
+	for {
+		line, err := g.reader.Readline()
 		if err != nil {
-			return retStr, err
+			return nil, errors.Wrap(err, "error in ReadLine")
 		}
-		curByte := byteBuf[0]
-		// The GPS likes to return newlines for no data, if newline is not following CR, quash those here
-		if curByte == '\n' && g.lastByte != '\r' {
-			time.Sleep(10 * time.Millisecond)
-			continue
+		sentence, err := nmea.Parse(line)
+		if err == nil {
+			return sentence, nil
 		}
-		g.lastByte = curByte
-		if curByte != '\n' {
-			retStr += string(curByte)
-		} else {
-			keepReading = false
+		log.Printf("Error parsing '%s', %v", line, err)
+	}
+}
+
+func (g *GPSCore) NextFix() (nmea.GGA, error) {
+	for {
+		sentence, err := g.NextSentence()
+		if err != nil {
+			return nmea.GGA{}, errors.Wrap(err, "error in NextSentence")
+		}
+		gga, ok := sentence.(nmea.GGA)
+		if ok {
+			return gga, nil
 		}
 	}
-	return retStr, nil
 }
