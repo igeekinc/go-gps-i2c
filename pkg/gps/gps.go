@@ -6,12 +6,24 @@ import (
 	"log"
 )
 
-type GPSReader interface {
+// GPS is the end-user GPS structure to use.
+type GPS interface {
+	NextSentence() (nmea.Sentence, error)
+	NextFix() (nmea.GGA, error)
 	Readline() (string, error)
 }
 
+// GPSDevice is an interface to a GPS device.  This should be implemented for different types of devices and
+// gives the ability to read/write NMEA strings with the device
+// A specific implementation of a GPS device should implement GPSDevice and then composite GPSCore into its
+// struct so that it provides a complete GPS intergace
+type GPSDevice interface {
+	Readline() (string, error)
+}
+
+// GPSCore is high level methods for GPS devices that uses a GPSDevice for low level access
 type GPSCore struct {
-	reader GPSReader
+	reader GPSDevice
 }
 
 func (g *GPSCore) NextSentence() (nmea.Sentence, error) {

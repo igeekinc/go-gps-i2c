@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"periph.io/x/conn/v3"
 	"periph.io/x/conn/v3/i2c"
+	"time"
 )
 
 const DefaultAddr = 0x10
@@ -59,6 +60,7 @@ func (g *I2CGPS) Readline() (string, error) {
 			for _, curByte := range readBuf {
 				// The I2CGPS likes to return newlines for no data, if newline is not following CR, quash those here
 				if curByte == '\n' && g.lastByte != '\r' {
+					time.Sleep(500 * time.Millisecond) // GPS will only update once per second so a long sleep is good
 					continue
 				}
 				g.lastByte = curByte

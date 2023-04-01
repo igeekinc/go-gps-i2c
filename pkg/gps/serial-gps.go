@@ -5,6 +5,7 @@ import (
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/pkg/errors"
 	"io"
+	"log"
 )
 
 type SerialGPS struct {
@@ -18,6 +19,8 @@ type SerialGPS struct {
 }
 
 func NewSerialGPSReader(port string, baudRate uint, dataBits uint, stopBits uint) (gps *SerialGPS, err error) {
+	log.Printf("New SerialGPS Reader creating port=%s, baudRate = %d, dataBits = %d, stopBits = %d",
+		port, baudRate, dataBits, stopBits)
 	serialGPS := &SerialGPS{
 		port:     port,
 		baudRate: baudRate,
